@@ -3,7 +3,7 @@
   "description": "A simple tooltip is based on Vue",
   "main": "dist/index.js",
   "keywords":["Vue","tooltip"],
-  "version": "0.0.7",
+  "version": "0.0.8",
   "author": "芊野 <free.nan.sky@gmail.com>",
   "private": false,
   "scripts": {

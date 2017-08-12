@@ -1,13 +1,17 @@
 <template>
   <transition name="tip-fade">
     <div v-show="visible"
-      class="vue-easy-tool-tip"
-      :class="boxClass"
+      class="dt-tool-tip"
+      :class="[customClass, theme]"
       :style="boxStyle"
       @mouseenter="mouseEntered = true"
       @mouseleave="mouseEntered = false"
       @transitionend="handleTransitionend">
-      <div class="arrows" :class="direct" :style="arrowBox"></div>
+      <div v-show="placement"
+        class="arrows"
+        :class="placement"
+        :style="arrowBox">
+      </div>
       <h4 v-if="title" class="title" v-text="title"></h4>
       <pre v-if="content"
         class="content"
@@ -25,20 +29,34 @@
 </template>
 
 <script>
-import { getBestCoordinate } from './util.js'
+import {
+  computePlacementInfo,
+  computeCoordinateBaseMid,
+  computeCoordinateBaseEdge
+} from './util'
 
-function getPoint (bestDirect, box) {
-  const { direct, x, y } = bestDirect
-  const { width, height } = box
-  const halfWdith = width / 2
-  const halfHeight = height / 2
-  const offset = 10 // 三角形大小
-  switch (direct) {
-    case 'top': return { x: x - halfWdith, y: y - height - offset }
-    case 'bottom': return { x: x - halfWdith, y: y + offset  }
-    case 'left': return { x: x - width - offset, y: y - halfHeight }
-    case 'right': return { x: x + offset, y: y - halfHeight  }
+function computeArrowPos (placement, offset, size) {
+  // 小三角的长边长度
+  const start = offset + 'px'
+  const end = offset - size * 2 + 'px'
+  const posMap = {
+    'top-start': { top: '100%', left: start },
+    'top-mid': { top: '100%', left: '50%' },
+    'top-end': { top: '100%', right: end },
+
+    'bottom-start': { top: '0', left: start },
+    'bottom-mid': { top: '0', left: '50%' },
+    'bottom-end': { top: '0', right: end },
+
+    'left-start': { top: start, left: '100%' },
+    'left-mid': { top: '50%', left: '100%' },
+    'left-end': { bottom: end, left: '100%' },
+
+    'right-start': { top: start, left: '0' },
+    'right-mid': { top: '50%', left: '0' },
+    'right-end': { bottom: end, left: '0' }
   }
+  return posMap[placement]
 }
 
 export default {
@@ -73,7 +91,7 @@ export default {
     target: null,
 
     // 用于限制 tip 出现的方向
-    direction: {
+    placementQueue: {
       type: Array,
       default () {
         return ['top', 'right', 'bottom', 'left']
@@ -92,7 +110,7 @@ export default {
     // 提示用的小箭头大小
     arrowsSize: {
       type: Number,
-      default: 14
+      default: 8
     },
 
     // 组件的宽度
@@ -113,6 +131,12 @@ export default {
       default: 9999
     },
 
+    // 主题
+    theme: {
+      type: String,
+      default: 'light'
+    },
+
     // 自定义 class 的类名
     customClass: {
       type: String,
@@ -123,19 +147,19 @@ export default {
   data () {
     return {
       // tip 的展示方向（小箭头的方向）
-      direct: '',
+      placement: '',
       // 是否显示
       visible: false,
-      mouseEntered: false
+      mouseEntered: false,
+      arrowsPos: {}
     }
   },
 
   computed: {
     arrowBox () {
-      return {
-        width: `${this.arrowsSize}px`,
-        height: `${this.arrowsSize}px`
-      }
+      return Object.assign({
+        borderWidth: `${this.arrowsSize}px`
+      }, this.arrowsPos)
     },
 
     boxStyle () {
@@ -144,10 +168,6 @@ export default {
         width: typeof width === 'string' ? width : `${width}px`,
         zIndex: this.zIndex
       }
-    },
-
-    boxClass () {
-      return [this.direct, this.customClass]
     },
 
     contentHeight () {
@@ -191,13 +211,21 @@ export default {
     // 设置 tip 的位置
     setTipCoordinate () {
       this.$nextTick(() => {
-        const { $el, target, direction } = this
-        const { bestDirect, elBox } = getBestCoordinate($el, target, direction)
-        const point = getPoint(bestDirect, elBox)
-        this.direct = bestDirect.direct
-        this.$el.style.left = point.x + 'px'
-        this.$el.style.top = point.y + 'px'
+        const { $el, target, placement, arrowsSize } = this
+        const placementInfo = computePlacementInfo(target, $el, placement)
+        const coordinate = placementInfo.mod === 'mid'
+          ? computeCoordinateBaseMid(placementInfo, arrowsSize)
+          : computeCoordinateBaseEdge(placementInfo, arrowsSize)
+        this.setArrowsPos(coordinate)
+        this.placement = coordinate.placement
+        this.$el.style.left = coordinate.x + 'px'
+        this.$el.style.top = coordinate.y + 'px'
       })
+    },
+
+    setArrowsPos (coordinate) {
+      const { placement, arrowsOffset } = coordinate
+      this.arrowsPos = computeArrowPos(placement, arrowsOffset, this.arrowsSize)
     },
 
     // 设置 tip 的显示与否
@@ -227,21 +255,27 @@ export default {
 }
 </script>
 
+
 <style lang="scss">
-.vue-easy-tool-tip {
-  $borderColor: #ddd;
-  $mask: #fff;
+.dt-tool-tip {
+  $light-bdc: #d9d9d9;
+  $light-bgc: #fff;
+  $light-ftc: #000;
+
+  $dark-bdc: #1f2d3d;
+  $dark-bgc: #1f2d3d;
+  $dark-ftc: #fff;
 
   position: fixed;
   width: 200px;
+  padding: 8px 10px;
   box-sizing: border-box;
-  padding: 6px 8px;
-  border: 1px solid $borderColor;
+  border: 1px solid $light-bdc;
   border-radius: 4px;
-  box-shadow: 3px 3px 10px $borderColor;
-  position: fixed;
-  background: $mask;
+  box-shadow: 0 1px 6px rgba(0,0,0,.1);
+  background: $light-bgc;
   font-size: 12px;
+  color: $light-ftc;
   z-index: 9999;
   transition:
     opacity .3s,
@@ -266,50 +300,114 @@ export default {
     white-space: pre-wrap;
     word-wrap: break-word;
     overflow-y: auto;
-    background: $mask;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   .arrows {
     position: absolute;
-    height: 14px;
-    width: 14px;
-    border: inherit;
+    height: 0;
+    width: 0;
     z-index: -1;
-    background: $mask;
-    transform: translate(-50%, -50%) rotate(45deg);
-    display: none;
+    border-color: transparent;
+    border-style: inherit;
+    border-width: 10px;
 
-    &.top, &.bottom {
-      left: 50%;
+    &::after {
+      content: '';
       display: block;
+      position: absolute;
+      width: 0;
+      height: 0;
+      border-color: transparent;
+      border-width: inherit;
+      border-style: inherit;
+      transform: translate(-50%, -50%);
     }
-    &.top {
-      top: 100%;
-      border-top: none;
-      border-left: none;
+
+    &[class^="top-"],
+    &[class*=" top-"] {
+      border-top-color: inherit;
+      transform: translate(-50%, 0);
+
+      &::after {
+        border-top-color: $light-bgc;
+        top: -2px;
+      }
     }
-    &.bottom {
-      top: 0;
-      border-bottom: none;
-      border-right: none;
+
+    &[class^="bottom-"],
+    &[class*=" bottom-"] {
+      border-bottom-color: inherit;
+      transform: translate(-50%, -100%);
+
+      &::after {
+        border-bottom-color: $light-bgc;
+        top: 2px;
+      }
     }
-    &.left,&.right {
-      top: 50%;
-      display: block;
+
+    &[class^="left-"],
+    &[class*=" left-"] {
+      border-left-color: inherit;
+      transform: translate(0, -50%);
+
+      &::after {
+        border-left-color: $light-bgc;
+        left: -2px;
+      }
     }
-    &.left {
-      left: 100%;
-      border-bottom: none;
-      border-left: none;
-    }
-    &.right {
-      left: 0;
-      border-top: none;
-      border-right: none;
+
+    &[class^="right-"],
+    &[class*=" right-"] {
+      border-right-color: inherit;
+      transform: translate(-100%, -50%);
+
+      &::after {
+        border-right-color: $light-bgc;
+        left: 2px;
+      }
     }
   }
 
-  &.tip-fade-enter, &.tip-fade-leave-active {
+  &.dark {
+    border-color: $dark-bdc;
+    background: $dark-bgc;
+    color: $dark-ftc;
+
+    [class^="top-"],
+    [class*=" top-"] {
+      &::after {
+        border-top-color: $dark-bdc;
+      }
+    }
+
+    [class^="bottom-"],
+    [class*=" bottom-"] {
+      &::after {
+        border-bottom-color: $dark-bdc;
+      }
+    }
+
+    [class^="left-"],
+    [class*=" left-"] {
+      &::after {
+        border-left-color: $dark-bdc;
+      }
+    }
+
+    [class^="right-"],
+    [class*=" right-"] {
+      &::after {
+        border-right-color: $dark-bdc;
+      }
+    }
+  }
+
+  &.tip-fade-enter,
+  &.tip-fade-leave-active {
     opacity: 0
   }
 }

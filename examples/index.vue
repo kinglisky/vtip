@@ -3,6 +3,7 @@
     <vtip
       title="蓝书签"
       height="200px"
+      width="500px"
       :keep="keep"
       :content="content"
       :content-props="contentProps"
@@ -58,7 +59,7 @@ export default {
   data () {
     this.btns1 = []
     this.btns2 = []
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 10; i++) {
       this.btns1.push(getPosition())
       this.btns2.push(getPosition())
     }
