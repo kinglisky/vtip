@@ -1,22 +1,36 @@
 import Vue from 'vue'
+import main from './main.vue'
 
-const VtipConstructor = Vue.extend(require('./main.vue'))
+const VtipConstructor = Vue.extend(main)
+
+const props = main.props
+const defaultOptions = {}
+Object.keys(props).forEach(key => {
+  const prop = props[key]
+  const dv = prop.default
+  if (prop && prop.default != null) {
+    defaultOptions[key] = typeof dv === 'function' ? dv() : dv
+  }
+})
 
 let vtipInstance = null
 
 export default function tip (options) {
   options = options || {}
-  const instance = new VtipConstructor({
-    propsData: options
-  })
-  // 如果已经存在 tip 的实例则移除
-  if (vtipInstance && vtipInstance.$el) {
-    document.body.removeChild(vtipInstance.$el)
+  // 如果已经存在 tip 的实例,直接更新属性值
+  if (vtipInstance) {
+    Object.assign(vtipInstance, defaultOptions, options)
+    if (vtipInstance.target) {
+      vtipInstance.updateTip()
+    } else {
+      vtipInstance.hiddenTip()
+    }
+    return vtipInstance
   }
-  vtipInstance = instance.$mount()
-  document.body.appendChild(vtipInstance.$el)
-  vtipInstance.visible = true
-  vtipInstance.setTipCoordinate()
-  vtipInstance.setTipVisible()
+  // 否则创建一个 tip 实例
+  vtipInstance = new VtipConstructor({
+    propsData: options
+  }).$mount()
+  vtipInstance.updateTip()
   return vtipInstance
 }

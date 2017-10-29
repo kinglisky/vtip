@@ -1,19 +1,34 @@
-// 获取视口的大小
-function getClientView () {
-  return {
-    vw: window.innerWidth || document.documentElement.clientWidth,
-    vh: window.innerHeight || document.documentElement.clientHeight
-  }
-}
+const OVERFLOW_PROPERTYS = ['overflow', 'overflow-x', 'overflow-y']
 
-// 获取目标元素距离各个边界的位置信息
-function getBoxMargin (el) {
+const SCROLL_TYPES = ['scroll', 'auto']
+
+// 根元素
+const ROOT = document.body
+
+// 竖直方向
+const VERTICAL = ['top', 'bottom']
+// 水平方向
+const HORIZONTAL = ['left', 'right']
+
+// 默认限制显示方向如下，显示优先级按顺序以此递减
+const DEFAULT_PLACEMENT_QUEUE = ['top', 'right', 'bottom', 'left']
+
+// 最大值
+const MAX = 4
+
+// 获取目标元素相对于参考容器的位置信息
+function getBoxMargin (el, parent) {
   if (!el) return
-  const box = el.getBoundingClientRect()
+  const eBox = el.getBoundingClientRect()
+  const pBox = parent.getBoundingClientRect()
 
-  const { vw, vh } = getClientView()
+  const { width: vw, height: vh } = pBox
+  const { width, height } = eBox
 
-  const { width, height, top, right, bottom, left } = box
+  const top = eBox.top - pBox.top
+  const left = eBox.left - pBox.left
+  const right = eBox.right - pBox.left
+  const bottom = eBox.bottom - pBox.top
 
   const midX = left + width / 2
   const midY = top + height / 2
@@ -62,21 +77,30 @@ function getBoxMargin (el) {
   }
 }
 
-// 默认限制显示方向如下，显示优先级按顺序以此递减
-const DEFAULT_PLACEMENT_QUEUE = ['top', 'right', 'bottom', 'left']
-// 竖直方向
-const VERTICAL = ['top', 'bottom']
-// 水平方向
-const HORIZONTAL = ['left', 'right']
+// 获取最优展示方向，weight 越大对应方向的优先级越高
+function getBestPlacement (queue) {
+  return queue.sort((a, b) => b.weight - a.weight)[0]
+}
 
-// 最大值
-const MAX = 4
+// 是否是个可滚动的元素
+export function checkScrollable (element) {
+  const css = window.getComputedStyle(element, null)
+  return OVERFLOW_PROPERTYS.some(property => {
+    return ~SCROLL_TYPES.indexOf(css[property])
+  })
+}
 
-// 获取最优展示方向，index 越小对应方向的优先级越高
-function getBestMargin (queue) {
-  return queue.length === 1
-    ? queue[0]
-    : queue.sort((a, b) => a.index - b.index)[0]
+// 获取参考元素第一个可滚动的元素
+export function getScrollContainer (el) {
+  if (!el) return ROOT
+  let parent = el.parentNode
+  while (parent && parent !== ROOT) {
+    if (checkScrollable(parent)) {
+      return parent
+    }
+    parent = parent.parentNode
+  }
+  return ROOT
 }
 
 // 基于参考元素的某一侧的中点来计算目标元素的坐标
@@ -139,44 +163,42 @@ export function computeCoordinateBaseEdge (placementInfo, offset) {
   }
 }
 
-// el 参考元素，target 需要动态计算坐标的元素，limitQueue 限制展示方向
-export function computePlacementInfo (el, target, limitQueue) {
-  if (!el || !target) return
-  const placementQueue = Array.isArray(limitQueue) && limitQueue.length
+// ref 参考元素，container 容器， target 需要动态计算坐标的元素，limitQueue 限制展示方向
+export function computePlacementInfo (ref, container, target, limitQueue, offset) {
+  if (!ref || !target) return
+  const placementQueue = limitQueue && limitQueue.length
     ? limitQueue : DEFAULT_PLACEMENT_QUEUE
-
-  const { width: ew, height: eh, margin } = getBoxMargin(el)
+  const { width: ew, height: eh, margin } = getBoxMargin(ref, container)
   const { width: tw, height: th } = target.getBoundingClientRect()
 
   const dw = (tw - ew) / 2
   const dh = (th - eh) / 2
 
-  // 用于储存单个（水平或竖直）方向可容纳目标元素的方向
-  const singleAdmitQueue = []
-  // 用于储存水平或竖直方向上都可容纳目标元素的方向
-  const fullAdmitQueue = []
-  const marginQueue = Object.keys(margin)
+  const queueLen = placementQueue.length
+  const processedQueue = Object.keys(margin)
     .map(key => {
       const placementItem = margin[key]
+      // 这里 index 可以用来标记显示方向的优先级 index 越大，优先级越高
       const index = placementQueue.indexOf(placementItem.placement)
-      placementItem.index = index > -1 ? index : MAX
-      // 上下间距校验单方向校验
+      placementItem.weight = index > -1 ? MAX - index : MAX - queueLen
+
+      // 上下方向上可容纳目标元素
       const verSingleBiasCheck = (
-        VERTICAL.indexOf(placementItem.placement) > -1 &&
-        placementItem.size > th
+        ~VERTICAL.indexOf(placementItem.placement) &&
+        placementItem.size > th + offset
       )
-      // 上下间距校验双方向校验
+      // 上下方向上可容纳目标元素 && 目标元素上下显示时左右也可完整显示目标元素
       const verFullBiasCheck = (
         verSingleBiasCheck &&
         margin.left.size > dw &&
         margin.right.size > dw
       )
-      // 左右间距校验单方向校验
+      // 左右方向上可容纳目标元素
       const horSingleBiasCheck = (
         HORIZONTAL.indexOf(placementItem.placement) > -1 &&
-        placementItem.size > tw
+        placementItem.size > tw + offset
       )
-      // 左右间距校验双方向校验
+      // 左右方向上可容纳目标元素 && 显示时上下也可完整显示目标元素
       const horFullBiasCheck = (
         horSingleBiasCheck &&
         margin.top.size > dh &&
@@ -186,22 +208,53 @@ export function computePlacementInfo (el, target, limitQueue) {
       placementItem.dVer = margin.top.size - margin.bottom.size
       // 水平方向上的 left 与 right 的间距差值
       placementItem.dHor = margin.left.size - margin.right.size
-      if (verSingleBiasCheck || horSingleBiasCheck) {
-        singleAdmitQueue.push(placementItem)
-      }
+      placementItem.mod = 'edge'
+
       if (verFullBiasCheck || horFullBiasCheck) {
-        fullAdmitQueue.push(placementItem)
+        placementItem.mod = 'mid'
+        placementItem.weight += 3 + placementItem.weight / MAX
+        return placementItem
       }
+      if (verSingleBiasCheck || horSingleBiasCheck) {
+        placementItem.weight += 2 + placementItem.weight / MAX
+      }
+      return placementItem
     })
-  const mix = { ew, eh, tw, th, dw, dh }
-  if (fullAdmitQueue.length) {
-    return Object.assign({ mod: 'mid' }, mix, getBestMargin(fullAdmitQueue))
-  }
-  if (singleAdmitQueue.length) {
-    return Object.assign({ mod: 'edge' }, mix, getBestMargin(singleAdmitQueue))
-  }
-  const maxMargin = marginQueue.sort((a, b) => b.size - a.size)[0]
-  return Object.assign({ mod: 'edge' }, mix, maxMargin)
+  return Object.assign({ ew, eh, tw, th, dw, dh }, getBestPlacement(processedQueue))
 }
 
-export default { getClientView, computePlacementInfo, computeCoordinateBaseMid, computeCoordinateBaseEdge }
+// 用于计算小三角形在 tip 窗口中的位置
+export function computeArrowPos (placement, offset, size) {
+  const start = offset + 'px'
+  const end = offset - size * 2 + 'px'
+  const posMap = {
+    'top-start': { top: '100%', left: start },
+    'top-mid': { top: '100%', left: '50%' },
+    'top-end': { top: '100%', right: end },
+
+    'bottom-start': { top: '0', left: start },
+    'bottom-mid': { top: '0', left: '50%' },
+    'bottom-end': { top: '0', right: end },
+
+    'left-start': { top: start, left: '100%' },
+    'left-mid': { top: '50%', left: '100%' },
+    'left-end': { bottom: end, left: '100%' },
+
+    'right-start': { top: start, left: '0' },
+    'right-mid': { top: '50%', left: '0' },
+    'right-end': { bottom: end, left: '0' }
+  }
+  return posMap[placement]
+}
+
+export function debounce (fn, delay) {
+  let timer
+  return function () {
+    const context = this
+    const args = arguments
+    clearTimeout(timer)
+    timer = setTimeout(function () {
+      fn.apply(context, args)
+    }, delay)
+  }
+}

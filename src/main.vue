@@ -1,63 +1,52 @@
 <template>
-  <transition name="tip-fade">
-    <div v-show="visible"
-      class="dt-tool-tip"
-      :class="[customClass, theme]"
+  <transition name="v-tip-fade">
+    <div v-show="tipVisible"
+      class="v-tip-container"
       :style="boxStyle"
+      :class="boxClass"
       @mouseenter="mouseEntered = true"
-      @mouseleave="mouseEntered = false"
-      @transitionend="handleTransitionend">
+      @mouseleave="mouseEntered = false">
       <div v-show="placement"
-        class="arrows"
+        class="v-tip-arrows"
         :class="placement"
         :style="arrowBox">
       </div>
-      <h4 v-if="title" class="title" v-text="title"></h4>
-      <pre v-if="content"
-        class="content"
-        v-text="content"
+      <span v-if="title" class="v-tip-title">
+        {{ title }}
+      </span>
+      <p v-if="content"
+        class="v-tip-content"
         :style="contentHeight">
-      </pre>
+        {{ content }}
+      </p>
       <component
-        v-if="contentComponent"
-        v-bind="contentProps"
-        :is="contentCreator">
+        v-if="customComponent"
+        v-bind="customProps"
+        v-on="customListeners"
+        :is="customComponent"
+        @hidden-tip="hiddenTip"
+        @update-tip="updateTip">
       </component>
-      <slot></slot>
     </div>
   </transition>
 </template>
 
 <script>
 import {
+  debounce,
+  checkScrollable,
+  getScrollContainer,
+  computeArrowPos,
   computePlacementInfo,
   computeCoordinateBaseMid,
   computeCoordinateBaseEdge
 } from './util'
 
-function computeArrowPos (placement, offset, size) {
-  // 小三角的长边长度
-  const start = offset + 'px'
-  const end = offset - size * 2 + 'px'
-  const posMap = {
-    'top-start': { top: '100%', left: start },
-    'top-mid': { top: '100%', left: '50%' },
-    'top-end': { top: '100%', right: end },
-
-    'bottom-start': { top: '0', left: start },
-    'bottom-mid': { top: '0', left: '50%' },
-    'bottom-end': { top: '0', right: end },
-
-    'left-start': { top: start, left: '100%' },
-    'left-mid': { top: '50%', left: '100%' },
-    'left-end': { bottom: end, left: '100%' },
-
-    'right-start': { top: start, left: '0' },
-    'right-mid': { top: '50%', left: '0' },
-    'right-end': { bottom: end, left: '0' }
-  }
-  return posMap[placement]
-}
+// passive support check
+let supportsPassive = false
+document.addEventListener('passive-check', () => {}, {
+  get passive () { supportsPassive = { passive: true } }
+})
 
 export default {
   name: 'Vtip',
@@ -76,36 +65,44 @@ export default {
     },
 
     // 工具函数调用时附加到自定义组件 props 上面的
-    contentProps: {
+    customProps: {
       type: Object,
       default () {
         return {}
       }
     },
 
-    // 工具函数调用时可以通过 render 函数或者传入的自定义组件自定义显示内容
-    // 组件使用时推荐用 slot 大法
-    contentComponent: [String, Function, Object],
+    // 对应 <component> 组件 is 属性
+    customComponent: {
+      type: [String, Function, Object],
+      default: ''
+    },
 
-    // tool-tip 绑定的目标元素
+    // 用于监听自定义组件 emit 的事件
+    customListeners: Object,
+
+    // tip 绑定的目标元素
     target: null,
 
-    // 用于限制 tip 出现的方向
-    placementQueue: {
+    // tip 的容器，默认插入 body 中
+    container: null,
+
+    // 用于限制 tip 展示的方向，优先级按顺序
+    placements: {
       type: Array,
       default () {
         return ['top', 'right', 'bottom', 'left']
       }
     },
 
-    // 是否保持 tip 的显示状态
-    keep: Boolean,
-
     // tip 窗口多久后自动消失，为 <=0 不消失
     duration: {
       type: Number,
-      default: 2000
+      default: 400
     },
+
+     // 是否为 tip 添加 transfrom 过渡
+    transition: Boolean,
 
     // 提示用的小箭头大小
     arrowsSize: {
@@ -116,7 +113,7 @@ export default {
     // 组件的宽度
     width: {
       type: [String, Number],
-      default: '300px'
+      default: '200px'
     },
 
     // 内容的高度
@@ -128,10 +125,10 @@ export default {
     // tip 的 z-index
     zIndex: {
       type: Number,
-      default: 9999
+      default: 999
     },
 
-    // 主题
+    // 主题 light dark 默认为 light
     theme: {
       type: String,
       default: 'light'
@@ -145,11 +142,14 @@ export default {
   },
 
   data () {
+    this.containerNode = null
+    this.targetParentNode = null
+    this.visibleTimer = null
     return {
       // tip 的展示方向（小箭头的方向）
       placement: '',
       // 是否显示
-      visible: false,
+      tipVisible: false,
       mouseEntered: false,
       arrowsPos: {}
     }
@@ -170,245 +170,127 @@ export default {
       }
     },
 
+    boxClass () {
+      const { customClass, theme, transition } = this
+      const tsClass = transition ? 'transition-transfrom' : ''
+      return [customClass, theme, tsClass]
+    },
+
     contentHeight () {
       const height = this.height
       return {
         height: typeof height === 'string' ? height : `${height}px`
       }
-    },
-
-    contentCreator () {
-      const contentComponent = this.contentComponent
-      return typeof contentComponent === 'function'
-        ? { render: contentComponent }
-        : contentComponent
     }
   },
 
   watch: {
-    target (target) {
-      if (target && this.$el) {
-        this.visible = true
-        this.setTipVisible()
-        this.setTipCoordinate()
-      }
-    },
-
-    keep (v) {
-      if (!v) {
-        this.setTipVisible()
-      }
-    },
-
     mouseEntered (v) {
       if (!v) {
-        this.setTipVisible()
+        this.setTipVisible(false)
       }
     }
   },
 
+  beforeDestroy () {
+    this.clearScrollEvent()
+  },
+
   methods: {
-    // 设置 tip 的位置
-    setTipCoordinate () {
-      this.$nextTick(() => {
-        const { $el, target, placement, arrowsSize } = this
-        const placementInfo = computePlacementInfo(target, $el, placement)
-        const coordinate = placementInfo.mod === 'mid'
-          ? computeCoordinateBaseMid(placementInfo, arrowsSize)
-          : computeCoordinateBaseEdge(placementInfo, arrowsSize)
-        this.setArrowsPos(coordinate)
-        this.placement = coordinate.placement
-        this.$el.style.left = coordinate.x + 'px'
-        this.$el.style.top = coordinate.y + 'px'
-      })
+    showTip () {
+      clearTimeout(this.visibleTimer)
+      this.tipVisible = true
     },
 
-    setArrowsPos (coordinate) {
-      const { placement, arrowsOffset } = coordinate
+    // 隐藏 tip
+    hiddenTip (immedia) {
+      if (immedia) {
+        this.tipVisible = false
+      } else {
+        this.setTipVisible(false)
+      }
+    },
+
+    // 更新 tip 位置
+    updateTip () {
+      this.setContainerNode()
+      this.showTip()
+      this.asynSetCoordinate()
+    },
+
+    // 设置 tip 的容器
+    setContainerNode () {
+      const {
+        $el,
+        target,
+        container,
+        targetParentNode,
+        containerNode: oldNode
+      } = this
+      // 目标元素的父级节点相同则不需要重新计算容器
+      if (!target || target.parentNode === targetParentNode) return
+      this.targetParentNode = target.parentNode
+      const newNode = container || getScrollContainer(target)
+      if (newNode === oldNode) return
+      if ($el.parentNode !== newNode) {
+        newNode.appendChild($el)
+      }
+      const position = window.getComputedStyle(newNode, null).position
+      if (!position || position === 'static') {
+        newNode.style.position = 'relative'
+      }
+      if (oldNode) {
+        oldNode.removeEventListener('scroll', this.scrollHandler, supportsPassive)
+      }
+      if (checkScrollable(newNode)) {
+        newNode.addEventListener('scroll', this.scrollHandler, supportsPassive)
+      }
+      this.containerNode = newNode
+    },
+
+    setCoordinate () {
+      const { $el, target, containerNode, placements, arrowsSize } = this
+      if (!$el || !target || !containerNode) return
+      const placementInfo = computePlacementInfo(target, containerNode, $el, placements, arrowsSize)
+      const coordinate = placementInfo.mod === 'mid'
+        ? computeCoordinateBaseMid(placementInfo, arrowsSize)
+        : computeCoordinateBaseEdge(placementInfo, arrowsSize)
+      this.setArrowsPos(coordinate)
+      this.placement = coordinate.placement
+      const x = coordinate.x + containerNode.scrollLeft
+      const y = coordinate.y + containerNode.scrollTop
+      this.$el.style.transform = `translate3d(${x}px, ${y}px, 0)`
+    },
+
+    asynSetCoordinate () {
+      this.$nextTick(this.setCoordinate)
+    },
+
+    // 设置小三角形的位置
+    setArrowsPos ({ placement, arrowsOffset }) {
       this.arrowsPos = computeArrowPos(placement, arrowsOffset, this.arrowsSize)
     },
 
-    // 设置 tip 的显示与否
-    setTipVisible () {
+    // 设置 tip 经过 duration ms 后的状态
+    setTipVisible (v) {
+      if (this.duration == null || this.duration <= 0) return
       clearTimeout(this.visibleTimer)
-      if (this.duration <= 0) return
       this.visibleTimer = setTimeout(() => {
-        this.visible = this.keep || this.mouseEntered
+        this.tipVisible = v || this.mouseEntered
         this.visibleTimer = null
       }, this.duration)
     },
 
-    handleTransitionend ({ propertyName }) {
-      if (propertyName === 'opacity' || propertyName === 'left') {
-        this.$emit('transend')
+    // 参考元素父级容器发生滚动时的处理
+    scrollHandler: debounce(function () {
+      this.setCoordinate()
+    }, 200),
+
+    clearScrollEvent () {
+      if (this.containerNode) {
+        this.containerNode.removeEventListener('scroll', this.scrollHandler, supportsPassive)
       }
-    },
-
-    hiddenTip () {
-      this.visible = false
     }
-  },
-
-  created () {
-    this.visibleTimer = null
   }
 }
 </script>
-
-
-<style lang="scss">
-.dt-tool-tip {
-  $light-bdc: #d9d9d9;
-  $light-bgc: #fff;
-  $light-ftc: #000;
-
-  $dark-bdc: #1f2d3d;
-  $dark-bgc: #1f2d3d;
-  $dark-ftc: #fff;
-
-  position: fixed;
-  width: 200px;
-  padding: 8px 10px;
-  box-sizing: border-box;
-  border: 1px solid $light-bdc;
-  border-radius: 4px;
-  box-shadow: 0 1px 6px rgba(0,0,0,.1);
-  background: $light-bgc;
-  font-size: 12px;
-  color: $light-ftc;
-  z-index: 9999;
-  transition:
-    opacity .3s,
-    top .5s cubic-bezier(0.4, 0, 0.2, 1),
-    left .5s cubic-bezier(0.4, 0, 0.2, 1);
-
-  * {
-    padding: 0;
-    margin: 0;
-    box-sizing: border-box;
-  }
-
-  .title {
-    padding: 4px 0;
-    font-size: 14px;
-    font-weight: 400;
-  }
-
-  .content {
-    padding: 0;
-    line-height: 2;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    overflow-y: auto;
-
-    &::-webkit-scrollbar {
-      display: none;
-    }
-  }
-
-  .arrows {
-    position: absolute;
-    height: 0;
-    width: 0;
-    z-index: -1;
-    border-color: transparent;
-    border-style: inherit;
-    border-width: 10px;
-
-    &::after {
-      content: '';
-      display: block;
-      position: absolute;
-      width: 0;
-      height: 0;
-      border-color: transparent;
-      border-width: inherit;
-      border-style: inherit;
-      transform: translate(-50%, -50%);
-    }
-
-    &[class^="top-"],
-    &[class*=" top-"] {
-      border-top-color: inherit;
-      transform: translate(-50%, 0);
-
-      &::after {
-        border-top-color: $light-bgc;
-        top: -2px;
-      }
-    }
-
-    &[class^="bottom-"],
-    &[class*=" bottom-"] {
-      border-bottom-color: inherit;
-      transform: translate(-50%, -100%);
-
-      &::after {
-        border-bottom-color: $light-bgc;
-        top: 2px;
-      }
-    }
-
-    &[class^="left-"],
-    &[class*=" left-"] {
-      border-left-color: inherit;
-      transform: translate(0, -50%);
-
-      &::after {
-        border-left-color: $light-bgc;
-        left: -2px;
-      }
-    }
-
-    &[class^="right-"],
-    &[class*=" right-"] {
-      border-right-color: inherit;
-      transform: translate(-100%, -50%);
-
-      &::after {
-        border-right-color: $light-bgc;
-        left: 2px;
-      }
-    }
-  }
-
-  &.dark {
-    border-color: $dark-bdc;
-    background: $dark-bgc;
-    color: $dark-ftc;
-
-    [class^="top-"],
-    [class*=" top-"] {
-      &::after {
-        border-top-color: $dark-bdc;
-      }
-    }
-
-    [class^="bottom-"],
-    [class*=" bottom-"] {
-      &::after {
-        border-bottom-color: $dark-bdc;
-      }
-    }
-
-    [class^="left-"],
-    [class*=" left-"] {
-      &::after {
-        border-left-color: $dark-bdc;
-      }
-    }
-
-    [class^="right-"],
-    [class*=" right-"] {
-      &::after {
-        border-right-color: $dark-bdc;
-      }
-    }
-  }
-
-  &.tip-fade-enter,
-  &.tip-fade-leave-active {
-    opacity: 0
-  }
-}
-</style>

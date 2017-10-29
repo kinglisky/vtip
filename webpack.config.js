@@ -1,18 +1,12 @@
-const path = require('path')
-const webpack = require('webpack')
-const ExtractTextPlugin = require('extract-text-webpack-plugin')
-const IS_PROD = process.env.NODE_ENV === 'production'
-const DEV_ENTRY = './examples/main.js'
-const PROD_ENTRY = './src/index.js'
+var path = require('path')
+var webpack = require('webpack')
+
 module.exports = {
-  entry: IS_PROD ? PROD_ENTRY : DEV_ENTRY,
+  entry: './dev/main.js',
   output: {
     path: path.resolve(__dirname, './dist'),
     publicPath: '/dist/',
-    filename: 'index.js',
-    library: 'Vtip',       // 模块名称
-    libraryTarget: 'umd',   // 输出格式
-    umdNamedDefine: true    // 是否将模块名称作为 AMD 输出的命名空间
+    filename: 'build.js'
   },
   module: {
     rules: [
@@ -20,21 +14,14 @@ module.exports = {
         test: /\.vue$/,
         loader: 'vue-loader',
         options: {
-          preserveWhitespace: false,
           loaders: {
-            scss: IS_PROD
-              ? ExtractTextPlugin.extract({
-                use: 'css-loader!sass-loader',
-                fallback: 'vue-style-loader'
-              })
-              : 'vue-style-loader!css-loader!sass-loader',
-            sass: IS_PROD
-              ? ExtractTextPlugin.extract({
-                use: 'css-loader!sass-loader?indentedSyntax',
-                fallback: 'vue-style-loader'
-              })
-              : 'vue-style-loader!css-loader!sass-loader?indentedSyntax'
+            // Since sass-loader (weirdly) has SCSS as its default parse mode, we map
+            // the "scss" and "sass" values for the lang attribute to the right configs here.
+            // other preprocessors should work out of the box, no loader config like this necessary.
+            'scss': 'vue-style-loader!css-loader!sass-loader',
+            'sass': 'vue-style-loader!css-loader!sass-loader?indentedSyntax'
           }
+          // other vue-loader options go here
         }
       },
       {
@@ -43,8 +30,18 @@ module.exports = {
         exclude: /node_modules/
       },
       {
-        test: /\.css$/,
-        use: ['style-loader', 'css-loader']
+        test: /\.scss$/,
+        use: [
+          {
+            loader: 'style-loader'
+          },
+          {
+            loader: 'css-loader'
+          },
+          {
+            loader: 'sass-loader'
+          }
+        ]
       },
       {
         test: /\.(png|jpg|gif|svg)$/,
@@ -62,7 +59,8 @@ module.exports = {
   },
   devServer: {
     historyApiFallback: true,
-    noInfo: true
+    noInfo: true,
+    overlay: true
   },
   performance: {
     hints: false
@@ -70,27 +68,14 @@ module.exports = {
   devtool: '#eval-source-map'
 }
 
-if (IS_PROD) {
+if (process.env.NODE_ENV === 'production') {
   module.exports.devtool = '#source-map'
-  module.exports.externals = {
-    vue: {
-      root: 'Vue',
-      commonjs: 'vue',
-      commonjs2: 'vue',
-      amd: 'vue'
-    }
-  }
   // http://vue-loader.vuejs.org/en/workflow/production.html
   module.exports.plugins = (module.exports.plugins || []).concat([
     new webpack.DefinePlugin({
       'process.env': {
         NODE_ENV: '"production"'
       }
-    }),
-    new ExtractTextPlugin({
-      filename: 'index.css',
-      // disable: false,
-      allChunks: true
     }),
     new webpack.optimize.UglifyJsPlugin({
       sourceMap: true,

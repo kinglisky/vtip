@@ -8,10 +8,10 @@ function clearEvent (el) {
   if (el._tipMouseleaveHandler) {
     el.removeEventListener('mouseleave', el._tipMouseleaveHandler)
   }
-  delete el._tipInstance
   delete el._tipHandler
-  delete el._tipOptions
   delete el._tipMouseleaveHandler
+  delete el._tipOptions
+  delete el._tipInstance
 }
 
 export default {
@@ -20,50 +20,55 @@ export default {
     // 自定义指令的名字，默认为 tip
     const name = options.directiveName || 'tip'
     // tip 的展示方向
-    const allDirection = ['top', 'right', 'bottom', 'left']
+    const allPlacement = ['top', 'right', 'bottom', 'left']
 
     Vue.directive(name, {
       bind (el, binding) {
         clearEvent(el)
-        const { click, hover, keep } = binding.modifiers
-        const direction = allDirection.filter(direc => binding.modifiers[direc])
+        const { click, dark, transition } = binding.modifiers
+        const limitPlacementQueue = allPlacement.filter(placement => binding.modifiers[placement])
         el._tipOptions = binding.value
         el._tipHandler = function tipHandler () {
+          if (this._tipOptions == null) return
           const options = this._tipOptions
+          const placements = limitPlacementQueue.length
+            ? limitPlacementQueue : allPlacement
           const mix = {
-            direction,
-            target: this,
-            keep: Boolean(keep),
-            duration: keep ? 800 : 2000
+            placements,
+            transition,
+            theme: dark ? 'dark' : 'light'
           }
           // 一般情况为 v-tip 绑定需要显示的内容
-          // 特殊情况可以直接绑定一个配置对象
-          const tipOptions = typeof options === 'string'
-            ? Object.assign(mix, { content: options })
-            : Object.assign(mix, options)
+          // 需要配置时可以直接绑定一个配置对象
+          const tipOptions = typeof options === 'object'
+            ? Object.assign(mix, options, { target: this })
+            : Object.assign(mix, { content: String(options), target: this })
           this._tipInstance = Tip(tipOptions)
+        }
+        el._tipMouseleaveHandler = function tipMouseleaveHandler () {
+          if (this._tipInstance) {
+            this._tipInstance.hiddenTip()
+          }
         }
         // 默认触发方式为 hover 触发
         if (click) {
           el.addEventListener('click', el._tipHandler)
         } else {
-          el._tipMouseleaveHandler = function tipMouseleaveHandler () {
-            if (this._tipInstance) {
-              this._tipInstance.keep = false
-              this._tipInstance.setTipVisible()
-            }
-          }
           el.addEventListener('mouseenter', el._tipHandler)
-          el.addEventListener('mouseleave', el._tipMouseleaveHandler)
         }
+        el.addEventListener('mouseleave', el._tipMouseleaveHandler)
       },
 
       update (el, { value, oldValue }) {
         if (value === oldValue) return
-        el._tipOptions = binding.value
+        el._tipOptions = value
       },
 
       unbind (el) {
+        const instance = el._tipInstance
+        if (instance && instance.clearScrollEvent) {
+          instance.clearScrollEvent()
+        }
         clearEvent(el)
       }
     })

@@ -1,38 +1,47 @@
 {
   "name": "vtip",
-  "description": "A simple tooltip is based on Vue",
-  "main": "dist/index.js",
-  "keywords":["Vue","tooltip"],
-  "version": "0.0.8",
+  "description": "A Vue.js Tooltip Util",
+  "version": "1.0.0",
   "author": "芊野 <free.nan.sky@gmail.com>",
   "private": false,
   "scripts": {
     "dev": "cross-env NODE_ENV=development webpack-dev-server --open --hot",
-    "build": "cross-env NODE_ENV=production webpack --progress --hide-modules"
+    "clear": "rm -rf lib",
+    "build:cpt": "node rollup.config.js",
+    "build:theme": "gulp build",
+    "build": "npm run clear && npm run build:cpt && npm run build:theme"
   },
   "dependencies": {
-    "vue": "^2.3.3"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/kinglisky/vtip.git"
+    "vue": "^2.4.4"
   },
   "devDependencies": {
-    "babel-core": "^6.0.0",
-    "babel-loader": "^6.0.0",
-    "babel-preset-env": "^1.5.1",
-    "cross-env": "^3.0.0",
-    "css-loader": "^0.25.0",
-    "extract-text-webpack-plugin": "^2.1.2",
-    "file-loader": "^0.9.0",
-    "node-sass": "^4.5.0",
-    "sass-loader": "^5.0.1",
-    "style-loader": "^0.18.2",
-    "vue-loader": "^12.1.0",
-    "vue-style-loader": "^3.0.1",
-    "vue-template-compiler": "^2.3.4",
-    "webpack": "^2.6.1",
-    "webpack-dev-server": "^2.4.5"
-  },
-  "license": "ISC"
+    "babel-core": "^6.26.0",
+    "babel-helpers": "^6.24.1",
+    "babel-loader": "^7.1.2",
+    "babel-plugin-external-helpers": "^6.22.0",
+    "babel-preset-env": "^1.6.0",
+    "babel-preset-es2015-rollup": "^3.0.0",
+    "cross-env": "^5.0.5",
+    "css-loader": "^0.28.7",
+    "file-loader": "^1.1.4",
+    "gulp": "^3.9.1",
+    "gulp-cssmin": "^0.2.0",
+    "gulp-rename": "^1.2.2",
+    "gulp-sass": "^3.1.0",
+    "node-sass": "^4.5.3",
+    "rollup": "^0.50.0",
+    "rollup-plugin-babel": "^3.0.2",
+    "rollup-plugin-commonjs": "^8.2.4",
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "rollup-plugin-uglify": "^2.0.1",
+    "rollup-plugin-vue2": "^0.8.0",
+    "sass-loader": "^6.0.6",
+    "style-loader": "^0.19.0",
+    "uglify-es": "^3.1.6",
+    "vue-loader": "^13.0.5",
+    "vue-style-loader": "^3.0.3",
+    "vue-template-compiler": "^2.4.4",
+    "webpack": "^3.6.0",
+    "webpack-dev-server": "^2.9.1"
+  }
 }
