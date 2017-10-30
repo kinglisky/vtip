@@ -113,7 +113,7 @@ export default {
     // 组件的宽度
     width: {
       type: [String, Number],
-      default: '200px'
+      default: '300px'
     },
 
     // 内容的高度

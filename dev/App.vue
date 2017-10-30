@@ -2,11 +2,16 @@
   <section id="app">
     <div class="btns">
       <span class="btn"
+        :style="{ top: '100px', left: '300px' }"
+        v-tip.dark="tempTip">
+        CESHI
+      </span>
+      <!-- <span class="btn"
         v-for="btn in btns"
         :key="btn.name" :style="btn.style"
         v-tip="getTip(btn.id)">
         {{ btn.name }}
-      </span>
+      </span> -->
       <!-- 作为工具函数使用 -->
       <!-- <span class="btn" :key="btn.name"
         v-for="btn in btns"
@@ -53,6 +58,11 @@ export default {
       })
     })
     return {
+      tempTip: {
+        title: '标题',
+        content: '今夕何夕，见此良人',
+        theme: 'dark'
+      },
       target: null,
       content: Text,
       contentProps: {}

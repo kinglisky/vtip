@@ -13,7 +13,7 @@
 
   width: 200px;
   margin: 0;
-  padding: 4px 6px;
+  padding: 6px 8px;
   box-sizing: border-box;
   border: 1px solid $light-bdc;
   border-radius: 4px;
@@ -25,22 +25,20 @@
   will-change: opacity, transform;
   transform: translate3d(0, 0, 0);
   transition: opacity .3s;
+  .v-tip-title, .v-tip-content {
+    margin: 0;
+    padding: 0;
+  }
 
   .v-tip-title {
-    margin: 0;
-    padding: 4px 0;
     font-size: 14px;
     font-weight: 400;
   }
 
   .v-tip-content {
-    padding: 0;
-    margin: 0;
-    line-height: 1.5;
+    line-height: 2;
     background-color: inherit;
     text-align: left;
-    white-space: pre-wrap;
-    word-wrap: break-word;
     overflow-y: auto;
   }
 
