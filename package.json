@@ -1,9 +1,11 @@
 {
   "name": "vtip",
-  "description": "A Vue.js Tooltip Util",
+  "description": "A simple tooltip based Vue",
+  "keywords":["Vue","tooltip"],
   "version": "1.0.0",
   "author": "芊野 <free.nan.sky@gmail.com>",
   "private": false,
+  "main": "lib/index.com.min.js",
   "scripts": {
     "dev": "cross-env NODE_ENV=development webpack-dev-server --open --hot",
     "clear": "rm -rf lib",

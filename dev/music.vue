@@ -10,20 +10,15 @@
 
 <script>
 import musics from './musics.js'
-const MUSIC_MAP = {}
-musics.forEach(it => {
-  MUSIC_MAP[it.name] = it.id
-})
 
 export default {
   props: {
-    name: String
+    id: String
   },
 
   computed: {
     link () {
-      const id = MUSIC_MAP[this.name]
-      return `//music.163.com/outchain/player?type=2&id=${id}&auto=0&height=66`
+      return `//music.163.com/outchain/player?type=2&id=${this.id}&auto=1&height=66`
     }
   }
 }

@@ -20,19 +20,19 @@ export default {
     // 自定义指令的名字，默认为 tip
     const name = options.directiveName || 'tip'
     // tip 的展示方向
-    const allPlacement = ['top', 'right', 'bottom', 'left']
+    const allPlacements = ['top', 'right', 'bottom', 'left']
 
     Vue.directive(name, {
       bind (el, binding) {
         clearEvent(el)
         const { click, dark, transition } = binding.modifiers
-        const limitPlacementQueue = allPlacement.filter(placement => binding.modifiers[placement])
+        const limitPlacementQueue = allPlacements.filter(placement => binding.modifiers[placement])
         el._tipOptions = binding.value
         el._tipHandler = function tipHandler () {
           if (this._tipOptions == null) return
           const options = this._tipOptions
           const placements = limitPlacementQueue.length
-            ? limitPlacementQueue : allPlacement
+            ? limitPlacementQueue : allPlacements
           const mix = {
             placements,
             transition,
@@ -66,8 +66,8 @@ export default {
 
       unbind (el) {
         const instance = el._tipInstance
-        if (instance && instance.clearScrollEvent) {
-          instance.clearScrollEvent()
+        if (instance && instance.destroy) {
+          instance.destroy()
         }
         clearEvent(el)
       }

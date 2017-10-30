@@ -1,11 +1,11 @@
 <template>
   <transition name="v-tip-fade">
-    <div v-show="tipVisible"
+    <div v-show="visible"
       class="v-tip-container"
       :style="boxStyle"
       :class="boxClass"
-      @mouseenter="mouseEntered = true"
-      @mouseleave="mouseEntered = false">
+      @mouseenter="showTip"
+      @mouseleave="hiddenTip(false)">
       <div v-show="placement"
         class="v-tip-arrows"
         :class="placement"
@@ -148,9 +148,7 @@ export default {
     return {
       // tip 的展示方向（小箭头的方向）
       placement: '',
-      // 是否显示
-      tipVisible: false,
-      mouseEntered: false,
+      visible: false,
       arrowsPos: {}
     }
   },
@@ -184,30 +182,18 @@ export default {
     }
   },
 
-  watch: {
-    mouseEntered (v) {
-      if (!v) {
-        this.setTipVisible(false)
-      }
-    }
-  },
-
-  beforeDestroy () {
-    this.clearScrollEvent()
-  },
-
   methods: {
     showTip () {
       clearTimeout(this.visibleTimer)
-      this.tipVisible = true
+      this.visible = true
     },
 
     // 隐藏 tip
     hiddenTip (immedia) {
       if (immedia) {
-        this.tipVisible = false
+        this.visible = false
       } else {
-        this.setTipVisible(false)
+        this.setVisible(false)
       }
     },
 
@@ -272,11 +258,10 @@ export default {
     },
 
     // 设置 tip 经过 duration ms 后的状态
-    setTipVisible (v) {
-      if (this.duration == null || this.duration <= 0) return
+    setVisible (v) {
       clearTimeout(this.visibleTimer)
       this.visibleTimer = setTimeout(() => {
-        this.tipVisible = v || this.mouseEntered
+        this.visible = v
         this.visibleTimer = null
       }, this.duration)
     },
@@ -290,6 +275,18 @@ export default {
       if (this.containerNode) {
         this.containerNode.removeEventListener('scroll', this.scrollHandler, supportsPassive)
       }
+    },
+
+    removeParentNode () {
+      if (this.$el.parentNode) {
+        this.$el.parentNode.removeChild(this.$el)
+      }
+    },
+
+    destroy () {
+      this.clearScrollEvent()
+      this.removeParentNode()
+      this.$destroy()
     }
   }
 }

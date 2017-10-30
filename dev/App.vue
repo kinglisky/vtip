@@ -2,17 +2,19 @@
   <section id="app">
     <div class="btns">
       <span class="btn"
-        v-for="btn in btns1"
+        v-for="btn in btns"
         :key="btn.name" :style="btn.style"
-        v-tip="getTip(btn.name)">
+        v-tip="getTip(btn.id)">
         {{ btn.name }}
       </span>
       <!-- 作为工具函数使用 -->
-      <span class="btn" :key="btn.name"
-        v-for="btn in btns2"
-        :style="btn.style" @click="setTip($event, btn.name)">
+      <!-- <span class="btn" :key="btn.name"
+        v-for="btn in btns"
+        :style="btn.style"
+        @click="setTip($event, btn.id)"
+        @mouseleave="hiddenTip">
         {{ btn.name }}
-      </span>
+      </span> -->
     </div>
   </section>
 </template>
@@ -42,15 +44,11 @@ function getPosition () {
 
 export default {
   data () {
-    this.btns1 = []
-    this.btns2 = []
+    this.btns = []
     musics.forEach(it => {
-      // this.btns1.push({
-      //   name: it.name,
-      //   style: getPosition()
-      // })
-      this.btns2.push({
+      this.btns.push({
         name: it.name,
+        id: it.id,
         style: getPosition()
       })
     })
@@ -64,23 +62,30 @@ export default {
   methods: {
 
     // 工具函数使用
-    setTip ({ target }, name) {
-      this.$tip({
+    setTip ({ target }, id) {
+      this.tipInstance = this.$tip({
         target,
         width: 'auto',
         transition: true,
-        customProps: { name },
+        customProps: { id },
         customComponent: Music
       })
     },
 
-    getTip (name) {
+    hiddenTip ({ target }) {
+      const { tipInstance } = this
+      if (tipInstance && tipInstance.target === target) {
+        tipInstance.hiddenTip()
+      }
+    },
+
+    getTip (id) {
       return {
         width: 'auto',
         theme: 'dark',
         transition: true,
         customComponent: Music,
-        customProps: { name }
+        customProps: { id }
       }
     }
   }

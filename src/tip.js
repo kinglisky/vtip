@@ -18,7 +18,7 @@ let vtipInstance = null
 export default function tip (options) {
   options = options || {}
   // 如果已经存在 tip 的实例,直接更新属性值
-  if (vtipInstance) {
+  if (vtipInstance && vtipInstance.$el.parentNode) {
     Object.assign(vtipInstance, defaultOptions, options)
     if (vtipInstance.target) {
       vtipInstance.updateTip()
