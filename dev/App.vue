@@ -60,7 +60,10 @@ export default {
     return {
       tempTip: {
         title: '标题',
-        content: '今夕何夕，见此良人',
+        width: '200px',
+        content: `
+      platform_dw.platform_dw_shop_embedding_base_food
+    `,
         theme: 'dark'
       },
       target: null,
