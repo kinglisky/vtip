@@ -4,6 +4,7 @@
 
 文档地址： [https://kinglisky.github.io/vtip](https://kinglisky.github.io/vtip)
 
+
 ## 开始使用
 
 安装：
@@ -161,8 +162,8 @@ tipInstance.updateTip()
 
 在线栗子 🌰 ：
 
-<iframe width="100%" height="300"
-src="//jsfiddle.net/nlush/oq4erh25/embedded/js,html,result/" allowfullscreen="allowfullscreen" frameborder="0">
+<iframe width="100%" height="600"
+src="//jsfiddle.net/nlush/oq4erh25/1/embedded/result,html,js,css/" allowfullscreen="allowfullscreen" frameborder="0">
 </iframe>
 
 

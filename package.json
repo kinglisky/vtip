@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "cross-env NODE_ENV=development webpack-dev-server --open --hot",
     "clear": "rm -rf lib",
+    "doc": "docsify serve docs",
     "build:cpt": "node rollup.config.js",
     "build:theme": "gulp build",
     "build": "npm run clear && npm run build:cpt && npm run build:theme"
