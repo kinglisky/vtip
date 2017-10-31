@@ -32,6 +32,10 @@ Vue.use(Vtip.directive, { directiveName: 'otherName' })
 ```html
 <span v-tip="msg">{{ msg }}</span>
 ```
+在线栗子 🌰 ：
+<iframe width="100%" height="600"
+  src="//jsfiddle.net/nlush/p8u0jgtv/2/embedded/result,html,js,css/" allowfullscreen="allowfullscreen" frameborder="0">
+</iframe>
 
 指标的修饰符：
 
