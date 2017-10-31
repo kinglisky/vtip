@@ -32,14 +32,14 @@ Vue.prototype.$tip = Vtip.tip
 Vue.use(Vtip.directive, { directiveName: 'otherName' })
 ```
 
-如果只是作为过长文案提示，可以直接绑定一个需要显示文案信息来使用：
+如果只是作为过长文案提示，可以直接绑定一个需要显示文案：
 
 ```html
 <span v-tip="msg">{{ msg }}</span>
 ```
 在线栗子 🌰 ：
 <iframe width="100%" height="600"
-  src="//jsfiddle.net/nlush/p8u0jgtv/3/embedded/result,html,js,css/" allowfullscreen="allowfullscreen" frameborder="0">
+  src="//jsfiddle.net/nlush/p8u0jgtv/4/embedded/result,html,js,css/" allowfullscreen="allowfullscreen" frameborder="0">
 </iframe>
 
 指标的修饰符：
@@ -91,7 +91,7 @@ const options = {
 可以看下面的栗子 🌰 ：
 
 <iframe width="100%" height="600"
-src="//jsfiddle.net/nlush/mry1zjey/embedded/result,html,js,css/" allowfullscreen="allowfullscreen" frameborder="0">
+src="//jsfiddle.net/nlush/mry1zjey/1/embedded/result,html,js,css/" allowfullscreen="allowfullscreen" frameborder="0">
 </iframe>
 
 一般情况下指令都能满足 tip 的显示需要，但有时可能需要通过工具函数的形式来调用 tip 显示，这时就可以使用 `Vtip` 提供的 `tip` 工具函数了，`v-tip` 的指令是基于 `tip` 函数实现的。
@@ -135,7 +135,7 @@ const tipInstance = this.$tip({
   target: this.$el, // tip 的参考元素
   width: 400,
   content: '提示显示内容',
-  // customProps 传递 customComponent 组件的需要的 props
+  // 通过 customProps 传递 customComponent 组件的需要的 props
   customProps: {
     msg: '自定义渲染内容',
     handler () {
@@ -163,7 +163,7 @@ tipInstance.updateTip()
 在线栗子 🌰 ：
 
 <iframe width="100%" height="600"
-src="//jsfiddle.net/nlush/oq4erh25/1/embedded/result,html,js,css/" allowfullscreen="allowfullscreen" frameborder="0">
+src="//jsfiddle.net/nlush/oq4erh25/2/embedded/result,html,js,css/" allowfullscreen="allowfullscreen" frameborder="0">
 </iframe>
 
 
@@ -182,7 +182,7 @@ src="//jsfiddle.net/nlush/oq4erh25/1/embedded/result,html,js,css/" allowfullscre
 | placements | `Array` 用于设置 tip 显示的优先级 | ` ['top', 'right', 'bottom', 'left']` |
 | duration | `Number` tip 窗口多久后自动消失 | `400` |
 | arrowsSize | `Number` 提示用的小箭头大小 | `8` |
-| width | `[String, Number]` 组件的宽度 | `300px` |
+| width | `[String, Number]` 组件的宽度 | `auto` |
 | height | `[String, Number]` 内容的高度 | `auto`|
 | zIndex | `Number` tip 的 z-index | `9999` |
 | customClass | `String` 组件自定义 class 的类名 | `''` |
