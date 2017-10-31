@@ -1,8 +1,11 @@
 {
   "name": "vtip",
   "description": "A simple tooltip based Vue",
-  "keywords":["Vue","tooltip"],
-  "version": "1.0.1",
+  "keywords": [
+    "Vue",
+    "tooltip"
+  ],
+  "version": "1.0.3",
   "author": "芊野 <free.nan.sky@gmail.com>",
   "private": false,
   "main": "lib/index.com.min.js",

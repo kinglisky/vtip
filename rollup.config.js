@@ -4,6 +4,10 @@ const resolve = require('rollup-plugin-node-resolve')
 const babel = require('rollup-plugin-babel')
 const uglify = require('rollup-plugin-uglify')
 const ug = require('uglify-es')
+const babelHelpers = require('babel-helpers')
+const externalHelpersWhitelist = babelHelpers.list.filter(helperName => {
+  return helperName !== 'asyncGenerator'
+})
 const plugins = [
   vue(),
   resolve({
@@ -11,7 +15,8 @@ const plugins = [
   }),
   babel({
     exclude: 'node_modules/**',
-    plugins: ['external-helpers']
+    plugins: ['external-helpers'],
+    externalHelpersWhitelist
   })
 ]
 
