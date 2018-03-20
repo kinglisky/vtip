@@ -5,7 +5,7 @@
       :style="boxStyle"
       :class="boxClass"
       @mouseenter="showTip"
-      @mouseleave="hiddenTip(false)">
+      @mouseleave="hiddenTip(true)">
       <div v-show="placement"
         class="v-tip-arrows"
         :class="placement"
@@ -98,7 +98,7 @@ export default {
     // tip 窗口多久后自动消失，为 <=0 不消失
     duration: {
       type: Number,
-      default: 400
+      default: 300
     },
 
      // 是否为 tip 添加 transfrom 过渡

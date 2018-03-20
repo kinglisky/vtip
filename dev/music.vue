@@ -18,7 +18,7 @@ export default {
 
   computed: {
     link () {
-      return `//music.163.com/outchain/player?type=2&id=${this.id}&auto=1&height=66`
+      return `//music.163.com/outchain/player?type=2&id=${this.id}&auto=0&height=66`
     }
   }
 }

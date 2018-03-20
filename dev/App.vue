@@ -1,26 +1,11 @@
 <template>
   <section id="app">
-    <div class="btns">
-      <span class="btn"
-        :style="{ top: '100px', left: '300px' }"
-        v-tip.dark="tempTip">
-        CESHI
-      </span>
-      <!-- <span class="btn"
-        v-for="btn in btns"
-        :key="btn.name" :style="btn.style"
-        v-tip="getTip(btn.id)">
-        {{ btn.name }}
-      </span> -->
-      <!-- 作为工具函数使用 -->
-      <!-- <span class="btn" :key="btn.name"
-        v-for="btn in btns"
-        :style="btn.style"
-        @click="setTip($event, btn.id)"
-        @mouseleave="hiddenTip">
-        {{ btn.name }}
-      </span> -->
-    </div>
+    <ul class="music-list">
+      <li v-for="m in musics" :key="m.id"
+        v-tip="getTip(m.id)">
+        {{ m.name }}
+      </li>
+    </ul>
   </section>
 </template>
 
@@ -49,23 +34,8 @@ function getPosition () {
 
 export default {
   data () {
-    this.btns = []
-    musics.forEach(it => {
-      this.btns.push({
-        name: it.name,
-        id: it.id,
-        style: getPosition()
-      })
-    })
     return {
-      tempTip: {
-        title: '标题',
-        width: '200px',
-        content: `
-      platform_dw.platform_dw_shop_embedding_base_food
-    `,
-        theme: 'dark'
-      },
+      musics,
       target: null,
       content: Text,
       contentProps: {}
@@ -97,6 +67,8 @@ export default {
         width: 'auto',
         theme: 'dark',
         transition: true,
+        placements: ['right'],
+        container: document.body,
         customComponent: Music,
         customProps: { id }
       }
@@ -107,36 +79,37 @@ export default {
 
 <style lang="scss">
 * {
+  box-sizing: border-box;
   padding: 0;
   margin: 0;
-  box-sizing: border-box;
 }
 
-html, body {
-  height: 100%;
+html,
+body {
   width: 100%;
+  height: 100%;
   font-family: PingFang SC, Verdana, Helvetica Neue, Microsoft Yahei, Hiragino Sans GB, Microsoft Sans Serif, WenQuanYi Micro Hei, sans-serif;
+  font-size: 12px;
 }
 
 #app {
-  height: 100%;
-  width: 100%;
   position: relative;
+  width: 100%;
+  height: 100%;
 }
 
-.btns {
-  position: absolute;
-  height: 100%;
-  width: 100%;
-  overflow: auto;
+.music-list {
+  width: 300px;
+  height: 600px;
+  margin: 100px;
+  border: 1px solid #ccc;
+  overflow-y: auto;
 
-  .btn {
-    text-align: left;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    padding: 4px 12px;
-    position: absolute;
-    cursor: pointer;
+  li {
+    font-size: 12px;
+    list-style: none;
+    padding: 10px;
+    border-bottom: 1px dotted #eee;
   }
 }
 </style>
